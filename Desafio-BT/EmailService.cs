@@ -1,39 +1,55 @@
-using System.Net;
-using System.Net.Mail;
+using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Logging;
+using MailKit.Net.Smtp;
+using MailKit.Security;
+using MimeKit;
+using System;
 using System.Threading.Tasks;
 
 public class EmailService
 {
-    private readonly string _smtpServer;
-    private readonly int _port;
-    private readonly string _senderEmail;
-    private readonly string _password;
+    private readonly EmailSettings _settings;
+    private readonly ILogger<EmailService> _logger;
 
-    public EmailService(string smtpServer, int port, string senderEmail, string password)
+    public EmailService(IOptions<EmailSettings> settings, ILogger<EmailService> logger)
     {
-        _smtpServer = smtpServer;
-        _port = port;
-        _senderEmail = senderEmail;
-        _password = password;
+        _settings = settings.Value ?? throw new ArgumentNullException(nameof(settings));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     public async Task SendEmailAsync(string toEmail, string subject, string body)
     {
-        var mailMessage = new MailMessage
-        {
-            From = new MailAddress(_senderEmail),
-            Subject = subject,
-            Body = body,
-            IsBodyHtml = false,
-        };
-        mailMessage.To.Add(toEmail);
+        if (string.IsNullOrWhiteSpace(toEmail))
+            throw new ArgumentException("Email de destino não pode ser vazio", nameof(toEmail));
+        if (string.IsNullOrWhiteSpace(subject))
+            throw new ArgumentException("Assunto não pode ser vazio", nameof(subject));
 
-        using (var smtpClient = new SmtpClient(_smtpServer, _port))
-        {
-            smtpClient.Credentials = new NetworkCredential(_senderEmail, _password);
-            smtpClient.EnableSsl = true;
+        _logger.LogDebug("Preparando envio de email para {Email}", toEmail);
 
-            await smtpClient.SendMailAsync(mailMessage);
+        var message = new MimeMessage();
+        message.From.Add(new MailboxAddress("Alerta de Ativos", _settings.SenderEmail));
+        message.To.Add(new MailboxAddress("", toEmail));
+        message.Subject = subject;
+        message.Body = new TextPart("plain") { Text = body };
+
+        using var client = new SmtpClient();
+        try
+        {
+            await client.ConnectAsync(_settings.SmtpServer, _settings.Port, SecureSocketOptions.StartTls);
+            await client.AuthenticateAsync(_settings.SmtpUsername, _settings.Password);
+            await client.SendAsync(message);
+            _logger.LogInformation("Email enviado com sucesso para {Email}", toEmail);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Falha ao enviar email para {Email}", toEmail);
+            throw;
+        }
+        finally
+        {
+            if (client.IsConnected)
+                await client.DisconnectAsync(true);
         }
     }
 }
+

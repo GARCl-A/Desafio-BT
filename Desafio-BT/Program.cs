@@ -1,54 +1,55 @@
 ﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using System;
+using System.Threading.Tasks;
 
-if (args.Length != 3)
+public class Program
 {
-    Console.WriteLine("Uso: <app> ATIVO PRECO_VENDA PRECO_COMPRA");
-    return;
-}
+    public static async Task Main(string[] args)
+    {
+        var builder = Host.CreateDefaultBuilder(args);
 
-var ativo = args[0];
-var precoVenda = args[1];
-var precoCompra = args[2];
+        builder.ConfigureLogging(logging =>
+        {
+            logging.ClearProviders();
+            logging.AddConsole();
+            logging.SetMinimumLevel(LogLevel.Information);
+        });
 
-var configuration = new ConfigurationBuilder()
-    .SetBasePath(AppContext.BaseDirectory)
-    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-    .Build();
 
-var emailSettings = configuration.GetSection("EmailSettings").Get<EmailSettings>();
+        builder.ConfigureServices((hostContext, services) =>
+        {
+            var configuration = hostContext.Configuration;
 
-if (emailSettings == null || string.IsNullOrEmpty(emailSettings.SenderEmail))
-{
-    Console.WriteLine("Erro: As configurações de e-mail não foram encontradas no appsettings.json.");
-    return;
-}
+            var destinationEmail = configuration.GetValue<string>("DestinationEmail");
+            if (string.IsNullOrEmpty(destinationEmail))
+            {
+                throw new InvalidOperationException("Erro: 'DestinationEmail' não está configurado. Verifique seus appsettings ou user secrets.");
+            }
 
-var destinationEmail = configuration.GetSection("DestinationEmail").Get<string>();
+            services.AddOptions<EmailSettings>()
+                .Bind(configuration.GetSection("EmailSettings"))
+                .ValidateDataAnnotations()
+                .ValidateOnStart();
+                
+            services.AddSingleton<EmailService>();
+            services.AddSingleton<AppRunner>();
+        });
 
-if (string.IsNullOrEmpty(destinationEmail))
-{
-    Console.WriteLine("Erro: O e-mail de destino não foi encontrado no appsettings.json.");
-    return;
-}
+        var host = builder.Build();
 
-var emailService = new EmailService(
-    emailSettings.SmtpServer,
-    emailSettings.Port,
-    emailSettings.SenderEmail,
-    emailSettings.Password
-);
-
-try
-{
-    Console.WriteLine("Enviando e-mail...");
-    await emailService.SendEmailAsync(
-        destinationEmail,
-        $"Alerta de Preço para o Ativo: {ativo}",
-        $"Uma operação foi sugerida para o ativo {ativo} com preço de venda {precoVenda} e preço de compra {precoCompra}."
-    );
-    Console.WriteLine("E-mail enviado com sucesso!");
-}
-catch (Exception ex)
-{
-    Console.WriteLine($"Ocorreu um erro ao enviar o e-mail: {ex.Message}");
+        try
+        {
+            var appRunner = host.Services.GetRequiredService<AppRunner>();
+            await appRunner.RunAsync(args);
+        }
+        catch (Exception ex)
+        {
+            var logger = host.Services.GetService<ILogger<Program>>();
+            logger?.LogCritical(ex, "Erro crítico na aplicação");
+            throw;
+        }
+    }
 }
