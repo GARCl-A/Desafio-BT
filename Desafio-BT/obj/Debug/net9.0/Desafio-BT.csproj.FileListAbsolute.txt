@@ -13,3 +13,15 @@ C:\Users\lucas\Desktop\Teste-Inoa\Desafio-BT\obj\Debug\net9.0\refint\Desafio-BT.
 C:\Users\lucas\Desktop\Teste-Inoa\Desafio-BT\obj\Debug\net9.0\Desafio-BT.pdb
 C:\Users\lucas\Desktop\Teste-Inoa\Desafio-BT\obj\Debug\net9.0\Desafio-BT.genruntimeconfig.cache
 C:\Users\lucas\Desktop\Teste-Inoa\Desafio-BT\obj\Debug\net9.0\ref\Desafio-BT.dll
+C:\Users\lucas\Desktop\Teste-Inoa\Desafio-BT\bin\Debug\net9.0\Microsoft.Extensions.Configuration.dll
+C:\Users\lucas\Desktop\Teste-Inoa\Desafio-BT\bin\Debug\net9.0\Microsoft.Extensions.Configuration.Abstractions.dll
+C:\Users\lucas\Desktop\Teste-Inoa\Desafio-BT\bin\Debug\net9.0\Microsoft.Extensions.Configuration.Binder.dll
+C:\Users\lucas\Desktop\Teste-Inoa\Desafio-BT\bin\Debug\net9.0\Microsoft.Extensions.Configuration.FileExtensions.dll
+C:\Users\lucas\Desktop\Teste-Inoa\Desafio-BT\bin\Debug\net9.0\Microsoft.Extensions.Configuration.Json.dll
+C:\Users\lucas\Desktop\Teste-Inoa\Desafio-BT\bin\Debug\net9.0\Microsoft.Extensions.FileProviders.Abstractions.dll
+C:\Users\lucas\Desktop\Teste-Inoa\Desafio-BT\bin\Debug\net9.0\Microsoft.Extensions.FileProviders.Physical.dll
+C:\Users\lucas\Desktop\Teste-Inoa\Desafio-BT\bin\Debug\net9.0\Microsoft.Extensions.FileSystemGlobbing.dll
+C:\Users\lucas\Desktop\Teste-Inoa\Desafio-BT\bin\Debug\net9.0\Microsoft.Extensions.Primitives.dll
+C:\Users\lucas\Desktop\Teste-Inoa\Desafio-BT\obj\Debug\net9.0\Desafio-BT.csproj.AssemblyReference.cache
+C:\Users\lucas\Desktop\Teste-Inoa\Desafio-BT\obj\Debug\net9.0\Desafio-BT.csproj.Up2Date
+C:\Users\lucas\Desktop\Teste-Inoa\Desafio-BT\bin\Debug\net9.0\appSettings.json
