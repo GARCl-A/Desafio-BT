@@ -1,0 +1,15 @@
+C:\Users\lucas\Desktop\Teste-Inoa\Desafio-BT\bin\Debug\net9.0\Desafio-BT.exe
+C:\Users\lucas\Desktop\Teste-Inoa\Desafio-BT\bin\Debug\net9.0\Desafio-BT.deps.json
+C:\Users\lucas\Desktop\Teste-Inoa\Desafio-BT\bin\Debug\net9.0\Desafio-BT.runtimeconfig.json
+C:\Users\lucas\Desktop\Teste-Inoa\Desafio-BT\bin\Debug\net9.0\Desafio-BT.dll
+C:\Users\lucas\Desktop\Teste-Inoa\Desafio-BT\bin\Debug\net9.0\Desafio-BT.pdb
+C:\Users\lucas\Desktop\Teste-Inoa\Desafio-BT\obj\Debug\net9.0\Desafio-BT.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\lucas\Desktop\Teste-Inoa\Desafio-BT\obj\Debug\net9.0\Desafio-BT.AssemblyInfoInputs.cache
+C:\Users\lucas\Desktop\Teste-Inoa\Desafio-BT\obj\Debug\net9.0\Desafio-BT.AssemblyInfo.cs
+C:\Users\lucas\Desktop\Teste-Inoa\Desafio-BT\obj\Debug\net9.0\Desafio-BT.csproj.CoreCompileInputs.cache
+C:\Users\lucas\Desktop\Teste-Inoa\Desafio-BT\obj\Debug\net9.0\Desafio-BT.sourcelink.json
+C:\Users\lucas\Desktop\Teste-Inoa\Desafio-BT\obj\Debug\net9.0\Desafio-BT.dll
+C:\Users\lucas\Desktop\Teste-Inoa\Desafio-BT\obj\Debug\net9.0\refint\Desafio-BT.dll
+C:\Users\lucas\Desktop\Teste-Inoa\Desafio-BT\obj\Debug\net9.0\Desafio-BT.pdb
+C:\Users\lucas\Desktop\Teste-Inoa\Desafio-BT\obj\Debug\net9.0\Desafio-BT.genruntimeconfig.cache
+C:\Users\lucas\Desktop\Teste-Inoa\Desafio-BT\obj\Debug\net9.0\ref\Desafio-BT.dll
