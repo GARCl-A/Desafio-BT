@@ -1,0 +1,30 @@
+# Arquivos gerados pelo sistema operacional
+*.swp
+*~
+.DS_Store
+
+# Logs
+logs/
+*.log
+
+# Arquivos gerados pelo .NET e Visual Studio
+[Bb]in/
+[Oo]bj/
+.vs/
+*.user
+*.suo
+
+# Arquivos de pacotes NuGet (não devem ser versionados)
+*.nupkg
+packages/
+
+# Arquivos de configurações de IDEs
+.idea/ # Rider
+*.vscode/ # VS Code (com algumas exceções, veja abaixo)
+
+# Exceção para o VS Code: você PODE querer versionar algumas configurações
+# Se você quiser compartilhar configurações de build (tasks.json) e debug (launch.json)
+# com outros desenvolvedores, adicione as seguintes linhas:
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
