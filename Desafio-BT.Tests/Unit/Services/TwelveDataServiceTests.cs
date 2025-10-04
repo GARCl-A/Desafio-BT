@@ -136,4 +136,49 @@ public class TwelveDataServiceTests
 
         return new HttpClient(mockHandler.Object);
     }
+
+    [Fact]
+    public async Task GetCurrentPriceAsync_NullSymbol_ThrowsArgumentException()
+    {
+        var mockHttpClient = new Mock<HttpClient>();
+        var mockLogger = new Mock<ILogger<TwelveDataService>>();
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new[] { new KeyValuePair<string, string?>("ApiKey", "test-key") })
+            .Build();
+        
+        var service = new TwelveDataService(mockHttpClient.Object, mockLogger.Object, config);
+        
+        await Assert.ThrowsAsync<ArgumentException>(() => service.GetCurrentPriceAsync(null!));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task GetCurrentPriceAsync_InvalidSymbol_ThrowsArgumentException(string symbol)
+    {
+        var mockHttpClient = new Mock<HttpClient>();
+        var mockLogger = new Mock<ILogger<TwelveDataService>>();
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new[] { new KeyValuePair<string, string?>("ApiKey", "test-key") })
+            .Build();
+        
+        var service = new TwelveDataService(mockHttpClient.Object, mockLogger.Object, config);
+        
+        await Assert.ThrowsAsync<ArgumentException>(() => service.GetCurrentPriceAsync(symbol));
+    }
+
+    [Fact]
+    public async Task GetCurrentPriceAsync_SymbolTooLong_ThrowsArgumentException()
+    {
+        var mockHttpClient = new Mock<HttpClient>();
+        var mockLogger = new Mock<ILogger<TwelveDataService>>();
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new[] { new KeyValuePair<string, string?>("ApiKey", "test-key") })
+            .Build();
+        
+        var service = new TwelveDataService(mockHttpClient.Object, mockLogger.Object, config);
+        var longSymbol = new string('A', 11); // > 10 characters
+        
+        await Assert.ThrowsAsync<ArgumentException>(() => service.GetCurrentPriceAsync(longSymbol));
+    }
 }

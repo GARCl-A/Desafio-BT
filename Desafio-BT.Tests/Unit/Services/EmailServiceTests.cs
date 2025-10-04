@@ -63,9 +63,9 @@ public class EmailServiceTests
     }
 
     [Fact]
-    public void Constructor_NullSettings_ThrowsNullReferenceException()
+    public void Constructor_NullSettings_ThrowsArgumentNullException()
     {
-        Assert.Throws<NullReferenceException>(() => 
+        Assert.Throws<ArgumentNullException>(() => 
             new EmailService(null!, _mockLogger.Object));
     }
 
@@ -311,5 +311,121 @@ public class EmailServiceTests
     {
         return typeof(EmailService).GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance)
             ?? throw new InvalidOperationException($"Method {methodName} not found");
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Constructor_InvalidSmtpServer_ThrowsArgumentException(string smtpServer)
+    {
+        var invalidSettings = new EmailSettings
+        {
+            SmtpServer = smtpServer,
+            Port = 587,
+            SenderEmail = "sender@test.com",
+            SmtpUsername = "username",
+            Password = "password"
+        };
+        
+        var mockOptions = new Mock<IOptions<EmailSettings>>();
+        mockOptions.Setup(o => o.Value).Returns(invalidSettings);
+        
+        Assert.Throws<ArgumentException>(() => 
+            new EmailService(mockOptions.Object, _mockLogger.Object));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(65536)]
+    public void Constructor_InvalidPort_ThrowsArgumentException(int port)
+    {
+        var invalidSettings = new EmailSettings
+        {
+            SmtpServer = "smtp.test.com",
+            Port = port,
+            SenderEmail = "sender@test.com",
+            SmtpUsername = "username",
+            Password = "password"
+        };
+        
+        var mockOptions = new Mock<IOptions<EmailSettings>>();
+        mockOptions.Setup(o => o.Value).Returns(invalidSettings);
+        
+        Assert.Throws<ArgumentException>(() => 
+            new EmailService(mockOptions.Object, _mockLogger.Object));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Constructor_InvalidSenderEmail_ThrowsArgumentException(string senderEmail)
+    {
+        var invalidSettings = new EmailSettings
+        {
+            SmtpServer = "smtp.test.com",
+            Port = 587,
+            SenderEmail = senderEmail,
+            SmtpUsername = "username",
+            Password = "password"
+        };
+        
+        var mockOptions = new Mock<IOptions<EmailSettings>>();
+        mockOptions.Setup(o => o.Value).Returns(invalidSettings);
+        
+        Assert.Throws<ArgumentException>(() => 
+            new EmailService(mockOptions.Object, _mockLogger.Object));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Constructor_InvalidSmtpUsername_ThrowsArgumentException(string smtpUsername)
+    {
+        var invalidSettings = new EmailSettings
+        {
+            SmtpServer = "smtp.test.com",
+            Port = 587,
+            SenderEmail = "sender@test.com",
+            SmtpUsername = smtpUsername,
+            Password = "password"
+        };
+        
+        var mockOptions = new Mock<IOptions<EmailSettings>>();
+        mockOptions.Setup(o => o.Value).Returns(invalidSettings);
+        
+        Assert.Throws<ArgumentException>(() => 
+            new EmailService(mockOptions.Object, _mockLogger.Object));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Constructor_InvalidPassword_ThrowsArgumentException(string password)
+    {
+        var invalidSettings = new EmailSettings
+        {
+            SmtpServer = "smtp.test.com",
+            Port = 587,
+            SenderEmail = "sender@test.com",
+            SmtpUsername = "username",
+            Password = password
+        };
+        
+        var mockOptions = new Mock<IOptions<EmailSettings>>();
+        mockOptions.Setup(o => o.Value).Returns(invalidSettings);
+        
+        Assert.Throws<ArgumentException>(() => 
+            new EmailService(mockOptions.Object, _mockLogger.Object));
+    }
+
+    [Fact]
+    public void Constructor_UnexpectedException_ThrowsInvalidOperationException()
+    {
+        var mockOptions = new Mock<IOptions<EmailSettings>>();
+        mockOptions.Setup(o => o.Value).Throws(new InvalidOperationException("Test exception"));
+        
+        Assert.Throws<InvalidOperationException>(() => 
+            new EmailService(mockOptions.Object, _mockLogger.Object));
     }
 }

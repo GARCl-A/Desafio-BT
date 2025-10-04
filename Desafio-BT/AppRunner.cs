@@ -28,7 +28,7 @@ public class AppRunner
         var validationResult = ValidateArguments(args);
         if (validationResult != 0) return validationResult;
 
-        var (ativo, precoVenda, precoCompra) = ParseArguments(args);
+        var (ativo, precoVenda, precoCompra) = await ParseArgumentsAsync(args);
         var destinationEmail = GetDestinationEmail();
         if (destinationEmail == null) return 3;
 
@@ -46,21 +46,62 @@ public class AppRunner
         return 0;
     }
 
-    private (string ativo, decimal precoVenda, decimal precoCompra) ParseArguments(string[] args)
+    private async Task<(string ativo, decimal precoVenda, decimal precoCompra)> ParseArgumentsAsync(string[] args)
     {
-        var ativo = SanitizeInput(args[0]);
-        if (!decimal.TryParse(args[1], NumberStyles.Number, CultureInfo.InvariantCulture, out var precoVenda) ||
-            !decimal.TryParse(args[2], NumberStyles.Number, CultureInfo.InvariantCulture, out var precoCompra))
+        try
         {
-            _logger.LogError("Preços devem ser valores numéricos válidos");
+            ValidateArgumentsArray(args);
+            var ativo = SanitizeInput(args[0]);
+            var (precoVenda, precoCompra) = await ParsePricesAsync(args[1], args[2]);
+            ValidatePriceLogic(precoCompra, precoVenda);
+            return (ativo, precoVenda, precoCompra);
+        }
+        catch (ArgumentException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro inesperado ao processar argumentos");
+            throw new ArgumentException("Erro ao processar argumentos", ex);
+        }
+    }
+
+    private static void ValidateArgumentsArray(string[] args)
+    {
+        if (args == null || args.Length == 0)
+            throw new ArgumentException("Argumentos não fornecidos");
+        
+        for (int i = 0; i < args.Length; i++)
+        {
+            if (string.IsNullOrWhiteSpace(args[i]))
+                throw new ArgumentException($"Argumento {i + 1} está vazio");
+        }
+    }
+
+    private async Task<(decimal precoVenda, decimal precoCompra)> ParsePricesAsync(string precoVendaStr, string precoCompraStr)
+    {
+        await Task.Yield();
+        
+        if (!decimal.TryParse(precoVendaStr, NumberStyles.Number, CultureInfo.InvariantCulture, out var precoVenda) ||
+            !decimal.TryParse(precoCompraStr, NumberStyles.Number, CultureInfo.InvariantCulture, out var precoCompra))
+        {
+            _logger.LogError("Preços devem ser valores numéricos válidos. Entrada1: {Input1}, Entrada2: {Input2}", 
+                LoggingUtils.SanitizeForLogging(precoVendaStr), LoggingUtils.SanitizeForLogging(precoCompraStr));
             throw new ArgumentException("Preços inválidos");
         }
+        
+        return (precoVenda, precoCompra);
+    }
+
+    private void ValidatePriceLogic(decimal precoCompra, decimal precoVenda)
+    {
         if (precoCompra >= precoVenda)
         {
-            _logger.LogError("Preço de compra deve ser menor que preço de venda");
+            _logger.LogError("Preço de compra deve ser menor que preço de venda. Compra: {PrecoCompra}, Venda: {PrecoVenda}", 
+                precoCompra, precoVenda);
             throw new ArgumentException("Preço de compra deve ser menor que preço de venda");
         }
-        return (ativo, precoVenda, precoCompra);
     }
 
     private string? GetDestinationEmail()
@@ -81,11 +122,16 @@ public class AppRunner
         using var cts = new CancellationTokenSource();
         Console.CancelKeyPress += (_, e) => { e.Cancel = true; cts.Cancel(); };
         
-        using var timer = new Timer(async _ => await MonitorAsset(ativo, precoVenda, precoCompra, destinationEmail, cts.Token), null, TimeSpan.Zero, TimeSpan.FromSeconds(15));
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(15));
         
         try
         {
-            await Task.Delay(Timeout.Infinite, cts.Token);
+            await MonitorAsset(ativo, precoVenda, precoCompra, destinationEmail, cts.Token);
+            
+            while (await timer.WaitForNextTickAsync(cts.Token))
+            {
+                await MonitorAsset(ativo, precoVenda, precoCompra, destinationEmail, cts.Token);
+            }
         }
         catch (OperationCanceledException ex)
         {
@@ -150,10 +196,10 @@ public class AppRunner
     private async Task SendPriceAlert(string ativo, decimal precoAtual, decimal precoVenda, decimal precoCompra, string destinationEmail, string acao)
     {
         var emoji = acao == "COMPRAR" ? "🟢" : "🔴";
-        var subject = $"{emoji} ALERTA {acao} - {LoggingUtils.SanitizeForLogging(ativo)}";
+        var subject = $"{emoji} ALERTA {LoggingUtils.SanitizeForLogging(acao)} - {LoggingUtils.SanitizeForLogging(ativo)}";
         var body = $@"📊 OPORTUNIDADE DETECTADA!
 
-{emoji} AÇÃO RECOMENDADA: {acao}
+{emoji} AÇÃO RECOMENDADA: {LoggingUtils.SanitizeForLogging(acao)}
 💰 Ativo: {LoggingUtils.SanitizeForLogging(ativo)}
 💵 Preço Atual: {precoAtual:C}
 
@@ -167,7 +213,7 @@ public class AppRunner
 Monitor de Ações - Sistema Automatizado";
 
         await _emailService.SendEmailAsync(destinationEmail, subject, body);
-        _logger.LogInformation("Email enviado - {Ativo}: {Preco} - {Acao}", LoggingUtils.SanitizeForLogging(ativo), precoAtual, acao);
+        _logger.LogInformation("Email enviado - {Ativo}: {Preco} - {Acao}", LoggingUtils.SanitizeForLogging(ativo), precoAtual, LoggingUtils.SanitizeForLogging(acao));
     }
 
     private static string SanitizeInput(string input)

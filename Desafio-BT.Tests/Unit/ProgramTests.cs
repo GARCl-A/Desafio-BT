@@ -221,6 +221,12 @@ public class EnvironmentScope : IDisposable
 
     private EnvironmentScope Set(string key, string? value)
     {
+        if (string.IsNullOrEmpty(key) || key.Contains('\0') || key.Contains('='))
+            throw new ArgumentException("Invalid environment variable key", nameof(key));
+        
+        if (value != null && value.Contains('\0'))
+            throw new ArgumentException("Invalid environment variable value", nameof(value));
+        
         Environment.SetEnvironmentVariable(key, value);
         _keysToCleanup.Add(key);
         return this;

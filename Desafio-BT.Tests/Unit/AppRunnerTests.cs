@@ -55,7 +55,7 @@ public class AppRunnerTests
         var mockEmailService = new Mock<IEmailService>();
         var mockTwelveDataService = new Mock<ITwelveDataService>();
         var config = new ConfigurationBuilder()
-            .AddInMemoryCollection([new("DestinationEmail", "test@test.com")])
+            .AddInMemoryCollection(new[] { new KeyValuePair<string, string?>("DestinationEmail", "test@test.com") })
             .Build();
         
         var appRunner = new AppRunner(mockLogger.Object, mockEmailService.Object, 
@@ -72,7 +72,7 @@ public class AppRunnerTests
         var mockEmailService = new Mock<IEmailService>();
         var mockTwelveDataService = new Mock<ITwelveDataService>();
         var config = new ConfigurationBuilder()
-            .AddInMemoryCollection([new("DestinationEmail", "test@test.com")])
+            .AddInMemoryCollection(new[] { new KeyValuePair<string, string?>("DestinationEmail", "test@test.com") })
             .Build();
         
         var appRunner = new AppRunner(mockLogger.Object, mockEmailService.Object, config, mockTwelveDataService.Object);
@@ -226,7 +226,7 @@ public class AppRunnerTests
         var mockEmailService = new Mock<IEmailService>();
         var mockTwelveDataService = new Mock<ITwelveDataService>();
         var config = new ConfigurationBuilder()
-            .AddInMemoryCollection([new("DestinationEmail", "test@test.com")])
+            .AddInMemoryCollection(new[] { new KeyValuePair<string, string?>("DestinationEmail", "test@test.com") })
             .Build();
         
         var appRunner = new AppRunner(mockLogger.Object, mockEmailService.Object, config, mockTwelveDataService.Object);
@@ -250,5 +250,141 @@ public class AppRunnerTests
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
+    }
+
+    [Fact]
+    public void ValidateArgumentsArray_NullArray_ThrowsArgumentException()
+    {
+        var method = typeof(AppRunner).GetMethod("ValidateArgumentsArray", BindingFlags.NonPublic | BindingFlags.Static);
+        
+        var ex = Assert.Throws<TargetInvocationException>(() => method?.Invoke(null, new object[] { null! }));
+        Assert.IsType<ArgumentException>(ex.InnerException);
+    }
+
+    [Fact]
+    public void ValidateArgumentsArray_EmptyArray_ThrowsArgumentException()
+    {
+        var method = typeof(AppRunner).GetMethod("ValidateArgumentsArray", BindingFlags.NonPublic | BindingFlags.Static);
+        var emptyArray = Array.Empty<string>();
+        
+        var ex = Assert.Throws<TargetInvocationException>(() => method?.Invoke(null, new object[] { emptyArray }));
+        Assert.IsType<ArgumentException>(ex.InnerException);
+    }
+
+    [Fact]
+    public void ValidateArgumentsArray_EmptyFirstArgument_ThrowsArgumentException()
+    {
+        var method = typeof(AppRunner).GetMethod("ValidateArgumentsArray", BindingFlags.NonPublic | BindingFlags.Static);
+        string[] args = ["", "25.50", "20.00"];
+        
+        var ex = Assert.Throws<TargetInvocationException>(() => method?.Invoke(null, new object[] { args }));
+        Assert.IsType<ArgumentException>(ex.InnerException);
+    }
+
+    [Fact]
+    public void ValidateArgumentsArray_EmptySecondArgument_ThrowsArgumentException()
+    {
+        var method = typeof(AppRunner).GetMethod("ValidateArgumentsArray", BindingFlags.NonPublic | BindingFlags.Static);
+        string[] args = ["PETR4", "", "20.00"];
+        
+        var ex = Assert.Throws<TargetInvocationException>(() => method?.Invoke(null, new object[] { args }));
+        Assert.IsType<ArgumentException>(ex.InnerException);
+    }
+
+    [Fact]
+    public void ValidateArgumentsArray_EmptyThirdArgument_ThrowsArgumentException()
+    {
+        var method = typeof(AppRunner).GetMethod("ValidateArgumentsArray", BindingFlags.NonPublic | BindingFlags.Static);
+        string[] args = ["PETR4", "25.50", ""];
+        
+        var ex = Assert.Throws<TargetInvocationException>(() => method?.Invoke(null, new object[] { args }));
+        Assert.IsType<ArgumentException>(ex.InnerException);
+    }
+
+    [Fact]
+    public void ValidateArgumentsArray_WhitespaceArgument_ThrowsArgumentException()
+    {
+        var method = typeof(AppRunner).GetMethod("ValidateArgumentsArray", BindingFlags.NonPublic | BindingFlags.Static);
+        string[] args = ["   ", "25.50", "20.00"];
+        
+        var ex = Assert.Throws<TargetInvocationException>(() => method?.Invoke(null, new object[] { args }));
+        Assert.IsType<ArgumentException>(ex.InnerException);
+    }
+
+    [Fact]
+    public void ValidateArgumentsArray_ValidArguments_DoesNotThrow()
+    {
+        var method = typeof(AppRunner).GetMethod("ValidateArgumentsArray", BindingFlags.NonPublic | BindingFlags.Static);
+        
+        var exception = Record.Exception(() => method?.Invoke(null, new object[] { ValidArguments }));
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    public async Task ParsePricesAsync_ValidPrices_ReturnsParsedValues()
+    {
+        var mockLogger = new Mock<ILogger<AppRunner>>();
+        var mockEmailService = new Mock<IEmailService>();
+        var mockTwelveDataService = new Mock<ITwelveDataService>();
+        var config = new ConfigurationBuilder().Build();
+        
+        var appRunner = new AppRunner(mockLogger.Object, mockEmailService.Object, config, mockTwelveDataService.Object);
+        var method = typeof(AppRunner).GetMethod("ParsePricesAsync", BindingFlags.NonPublic | BindingFlags.Instance);
+        
+        var result = await (Task<(decimal, decimal)>)method!.Invoke(appRunner, new object[] { "25.50", "20.00" })!;
+        
+        Assert.Equal(25.50m, result.Item1);
+        Assert.Equal(20.00m, result.Item2);
+    }
+
+    [Theory]
+    [InlineData("invalid", "20.00")]
+    [InlineData("25.50", "invalid")]
+    [InlineData("", "20.00")]
+    [InlineData("25.50", "")]
+    public async Task ParsePricesAsync_InvalidPrices_ThrowsArgumentException(string precoVenda, string precoCompra)
+    {
+        var mockLogger = new Mock<ILogger<AppRunner>>();
+        var mockEmailService = new Mock<IEmailService>();
+        var mockTwelveDataService = new Mock<ITwelveDataService>();
+        var config = new ConfigurationBuilder().Build();
+        
+        var appRunner = new AppRunner(mockLogger.Object, mockEmailService.Object, config, mockTwelveDataService.Object);
+        var method = typeof(AppRunner).GetMethod("ParsePricesAsync", BindingFlags.NonPublic | BindingFlags.Instance);
+        
+        await Assert.ThrowsAsync<ArgumentException>(async () => 
+            await (Task)method!.Invoke(appRunner, new object[] { precoVenda, precoCompra })!);
+    }
+
+    [Fact]
+    public void ValidatePriceLogic_ValidPrices_DoesNotThrow()
+    {
+        var mockLogger = new Mock<ILogger<AppRunner>>();
+        var mockEmailService = new Mock<IEmailService>();
+        var mockTwelveDataService = new Mock<ITwelveDataService>();
+        var config = new ConfigurationBuilder().Build();
+        
+        var appRunner = new AppRunner(mockLogger.Object, mockEmailService.Object, config, mockTwelveDataService.Object);
+        var method = typeof(AppRunner).GetMethod("ValidatePriceLogic", BindingFlags.NonPublic | BindingFlags.Instance);
+        
+        var exception = Record.Exception(() => method?.Invoke(appRunner, new object[] { 20.00m, 25.50m }));
+        Assert.Null(exception);
+    }
+
+    [Theory]
+    [InlineData(25.50, 20.00)]
+    [InlineData(25.00, 25.00)]
+    public void ValidatePriceLogic_InvalidPriceLogic_ThrowsArgumentException(decimal precoCompra, decimal precoVenda)
+    {
+        var mockLogger = new Mock<ILogger<AppRunner>>();
+        var mockEmailService = new Mock<IEmailService>();
+        var mockTwelveDataService = new Mock<ITwelveDataService>();
+        var config = new ConfigurationBuilder().Build();
+        
+        var appRunner = new AppRunner(mockLogger.Object, mockEmailService.Object, config, mockTwelveDataService.Object);
+        var method = typeof(AppRunner).GetMethod("ValidatePriceLogic", BindingFlags.NonPublic | BindingFlags.Instance);
+        
+        var ex = Assert.Throws<TargetInvocationException>(() => method?.Invoke(appRunner, new object[] { precoCompra, precoVenda }));
+        Assert.IsType<ArgumentException>(ex.InnerException);
     }
 }

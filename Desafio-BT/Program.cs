@@ -29,7 +29,7 @@ public static class Program
         builder.ConfigureServices((hostContext, services) =>
         {
             ConfigureEmailSettings(services, hostContext.Configuration);
-            services.AddSingleton(_ => new HttpClient { Timeout = TimeSpan.FromSeconds(15) });
+            services.AddSingleton(new HttpClient { Timeout = TimeSpan.FromSeconds(15) });
             services.AddSingleton<IEmailService, EmailService>();
             services.AddSingleton<ITwelveDataService, TwelveDataService>();
             services.AddSingleton<AppRunner>();

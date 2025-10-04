@@ -18,13 +18,37 @@ public class EmailService : IEmailService
 
     public EmailService(IOptions<EmailSettings> settings, ILogger<EmailService> logger, Func<ISmtpClientWrapper>? smtpClientFactory = null)
     {
-        _settings = settings.Value ?? throw new ArgumentNullException(nameof(settings));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _smtpClientFactory = smtpClientFactory ?? (() => new SmtpClientWrapper());
-        
-        _logger.LogInformation("EmailService inicializado - Servidor: {SmtpServer}, Porta: {Port}, Remetente: {SenderEmail}", 
-            LoggingUtils.SanitizeForLogging(_settings.SmtpServer), _settings.Port, LoggingUtils.SanitizeForLogging(_settings.SenderEmail));
-        _logger.LogDebug("Configurações de email validadas com sucesso");
+        try
+        {
+            _settings = settings?.Value ?? throw new ArgumentNullException(nameof(settings), "Configurações de email não fornecidas");
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _smtpClientFactory = smtpClientFactory ?? (() => new SmtpClientWrapper());
+            
+            ValidateEmailSettings(_settings);
+            
+            _logger.LogInformation("EmailService inicializado - Servidor: {SmtpServer}, Porta: {Port}, Remetente: {SenderEmail}", 
+                LoggingUtils.SanitizeForLogging(_settings.SmtpServer), _settings.Port, LoggingUtils.SanitizeForLogging(_settings.SenderEmail));
+            _logger.LogDebug("Configurações de email validadas com sucesso");
+        }
+        catch (Exception ex) when (!(ex is ArgumentNullException || ex is ArgumentException))
+        {
+            _logger?.LogError(ex, "Erro inesperado ao inicializar EmailService");
+            throw new InvalidOperationException("Falha na inicialização do serviço de email", ex);
+        }
+    }
+
+    private static void ValidateEmailSettings(EmailSettings settings)
+    {
+        if (string.IsNullOrWhiteSpace(settings.SmtpServer))
+            throw new ArgumentException("Servidor SMTP não configurado", nameof(settings));
+        if (settings.Port <= 0 || settings.Port > 65535)
+            throw new ArgumentException("Porta SMTP inválida", nameof(settings));
+        if (string.IsNullOrWhiteSpace(settings.SenderEmail))
+            throw new ArgumentException("Email do remetente não configurado", nameof(settings));
+        if (string.IsNullOrWhiteSpace(settings.SmtpUsername))
+            throw new ArgumentException("Usuário SMTP não configurado", nameof(settings));
+        if (string.IsNullOrWhiteSpace(settings.Password))
+            throw new ArgumentException("Senha SMTP não configurada", nameof(settings));
     }
 
     public async Task SendEmailAsync(string toEmail, string subject, string body)

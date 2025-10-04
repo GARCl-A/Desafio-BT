@@ -23,6 +23,7 @@ public class TwelveDataService : ITwelveDataService
     {
         try
         {
+            ValidateSymbol(symbol);
             var response = await FetchPriceDataAsync(symbol);
             var priceData = DeserializePriceResponse(response);
             return ParsePrice(priceData, symbol);
@@ -32,20 +33,43 @@ public class TwelveDataService : ITwelveDataService
             _logger.LogError(ex, "Erro ao consultar API para {Symbol}", LoggingUtils.SanitizeForLogging(symbol));
             throw new InvalidOperationException($"Falha na consulta da API para {symbol}", ex);
         }
+        catch (TaskCanceledException ex)
+        {
+            _logger.LogError(ex, "Timeout na consulta da API para {Symbol}", LoggingUtils.SanitizeForLogging(symbol));
+            throw new InvalidOperationException($"Timeout na consulta da API para {symbol}", ex);
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogError(ex, "Erro ao deserializar resposta da API para {Symbol}", LoggingUtils.SanitizeForLogging(symbol));
+            throw new InvalidOperationException($"Resposta inválida da API para {symbol}", ex);
+        }
+        catch (Exception ex) when (!(ex is ArgumentException || ex is InvalidOperationException))
+        {
+            _logger.LogError(ex, "Erro inesperado ao obter preço para {Symbol}", LoggingUtils.SanitizeForLogging(symbol));
+            throw new InvalidOperationException($"Erro inesperado ao consultar preço para {symbol}", ex);
+        }
+    }
+
+    private static void ValidateSymbol(string symbol)
+    {
+        if (string.IsNullOrWhiteSpace(symbol))
+            throw new ArgumentException("Símbolo da ação não pode ser vazio", nameof(symbol));
+        if (symbol.Length > 10)
+            throw new ArgumentException("Símbolo da ação muito longo", nameof(symbol));
     }
 
     private async Task<string> FetchPriceDataAsync(string symbol)
     {
         var url = $"https://api.twelvedata.com/price?symbol={symbol}&apikey={_apiKey}";
         var response = await _httpClient.GetStringAsync(url);
-        _logger.LogInformation("Resposta da API para {Symbol}: {Response}", LoggingUtils.SanitizeForLogging(symbol), response);
+        _logger.LogInformation("Resposta da API para {Symbol}: {Response}", LoggingUtils.SanitizeForLogging(symbol), LoggingUtils.SanitizeForLogging(response));
         return response;
     }
 
     private PriceResponse DeserializePriceResponse(string response)
     {
         var priceData = JsonSerializer.Deserialize<PriceResponse>(response);
-        _logger.LogInformation("Price deserializado: '{Price}'", priceData?.Price ?? "null");
+        _logger.LogInformation("Price deserializado: '{Price}'", LoggingUtils.SanitizeForLogging(priceData?.Price ?? "null"));
         return priceData ?? new PriceResponse();
     }
 
@@ -57,7 +81,7 @@ public class TwelveDataService : ITwelveDataService
             return price;
         }
         
-        throw new InvalidOperationException($"Preço inválido retornado pela API para {symbol}. Price: '{priceData.Price}'");
+        throw new InvalidOperationException($"Preço inválido retornado pela API para {LoggingUtils.SanitizeForLogging(symbol)}. Price: '{LoggingUtils.SanitizeForLogging(priceData.Price)}'");
     }
 
     private sealed class PriceResponse
