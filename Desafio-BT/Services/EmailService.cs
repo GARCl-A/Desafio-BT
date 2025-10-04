@@ -5,8 +5,12 @@ using MailKit.Security;
 using MimeKit;
 using System.Net.Sockets;
 using MailKit;
+using Desafio_BT.Models;
+using Desafio_BT.Utils;
 
-public class EmailService
+namespace Desafio_BT.Services;
+
+public class EmailService : IEmailService
 {
     private readonly EmailSettings _settings;
     private readonly ILogger<EmailService> _logger;

@@ -1,5 +1,7 @@
 using System.Text;
 
+namespace Desafio_BT.Utils;
+
 public static class LoggingUtils
 {
     public static string SanitizeForLogging(string input)

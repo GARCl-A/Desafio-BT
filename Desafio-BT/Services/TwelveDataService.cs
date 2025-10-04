@@ -2,8 +2,11 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Desafio_BT.Utils;
 
-public class TwelveDataService
+namespace Desafio_BT.Services;
+
+public class TwelveDataService : ITwelveDataService
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<TwelveDataService> _logger;

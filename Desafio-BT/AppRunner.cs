@@ -1,15 +1,17 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Globalization;
+using Desafio_BT.Services;
+using Desafio_BT.Utils;
 
 public class AppRunner
 {
     private readonly ILogger<AppRunner> _logger;
-    private readonly EmailService _emailService;
+    private readonly IEmailService _emailService;
     private readonly IConfiguration _config;
-    private readonly TwelveDataService _twelveDataService;
+    private readonly ITwelveDataService _twelveDataService;
 
-    public AppRunner(ILogger<AppRunner> logger, EmailService emailService, IConfiguration config, TwelveDataService twelveDataService)
+    public AppRunner(ILogger<AppRunner> logger, IEmailService emailService, IConfiguration config, ITwelveDataService twelveDataService)
     {
         _logger = logger;
         _emailService = emailService;
@@ -44,36 +46,59 @@ public class AppRunner
 
         _logger.LogInformation("Iniciando monitoramento do ativo {Ativo}. Pressione Ctrl+C para parar.", LoggingUtils.SanitizeForLogging(ativo));
         
-        using var timer = new Timer(async _ => await MonitorAsset(ativo, precoVenda, precoCompra, destinationEmail), null, TimeSpan.Zero, TimeSpan.FromSeconds(15));
+        using var cts = new CancellationTokenSource();
+        Console.CancelKeyPress += (_, e) => { e.Cancel = true; cts.Cancel(); };
         
-        await Task.Run(() => Console.ReadKey());
+        using var timer = new Timer(async _ => await MonitorAsset(ativo, precoVenda, precoCompra, destinationEmail, cts.Token), null, TimeSpan.Zero, TimeSpan.FromSeconds(15));
+        
+        try
+        {
+            await Task.Delay(Timeout.Infinite, cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("Monitoramento interrompido pelo usuário");
+        }
         return 0;
     }
 
-    private async Task MonitorAsset(string ativo, decimal precoVenda, decimal precoCompra, string destinationEmail)
+    private async Task MonitorAsset(string ativo, decimal precoVenda, decimal precoCompra, string destinationEmail, CancellationToken cancellationToken)
     {
-        try
+        if (cancellationToken.IsCancellationRequested) return;
+        
+        const int maxRetries = 3;
+        for (int attempt = 1; attempt <= maxRetries; attempt++)
         {
-            var precoAtual = await _twelveDataService.GetCurrentPriceAsync(ativo);
+            try
+            {
+                var precoAtual = await _twelveDataService.GetCurrentPriceAsync(ativo);
             
-            if (precoAtual <= precoCompra || precoAtual >= precoVenda)
-            {
-                var acao = precoAtual <= precoCompra ? "COMPRAR" : "VENDER";
-                await _emailService.SendEmailAsync(
-                    destinationEmail,
-                    $"Alerta {acao} - {LoggingUtils.SanitizeForLogging(ativo)}",
-                    $"Ação: {acao}\nPreço atual: {precoAtual:C}\nPreço de venda: {precoVenda:C}\nPreço de compra: {precoCompra:C}\nHorário: {DateTime.Now:HH:mm:ss}"
-                );
-                _logger.LogInformation("Email enviado - {Ativo}: {Preco} - {Acao}", LoggingUtils.SanitizeForLogging(ativo), precoAtual, acao);
+                if (precoAtual <= precoCompra || precoAtual >= precoVenda)
+                {
+                    var acao = precoAtual <= precoCompra ? "COMPRAR" : "VENDER";
+                    await _emailService.SendEmailAsync(
+                        destinationEmail,
+                        $"Alerta {acao} - {LoggingUtils.SanitizeForLogging(ativo)}",
+                        $"Ação: {acao}\nPreço atual: {precoAtual:C}\nPreço de venda: {precoVenda:C}\nPreço de compra: {precoCompra:C}\nHorário: {DateTime.Now:HH:mm:ss}"
+                    );
+                    _logger.LogInformation("Email enviado - {Ativo}: {Preco} - {Acao}", LoggingUtils.SanitizeForLogging(ativo), precoAtual, acao);
+                }
+                else
+                {
+                    _logger.LogInformation("Preço monitorado - {Ativo}: {Preco} (sem alerta)", LoggingUtils.SanitizeForLogging(ativo), precoAtual);
+                }
+                return;
             }
-            else
+            catch (Exception ex) when (attempt < maxRetries)
             {
-                _logger.LogInformation("Preço monitorado - {Ativo}: {Preco} (sem alerta)", LoggingUtils.SanitizeForLogging(ativo), precoAtual);
+                _logger.LogWarning(ex, "Tentativa {Attempt}/{MaxRetries} falhou para {Ativo}. Tentando novamente...", attempt, maxRetries, LoggingUtils.SanitizeForLogging(ativo));
+                await Task.Delay(TimeSpan.FromSeconds(2 * attempt), cancellationToken);
             }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Erro no monitoramento do ativo {Ativo}", LoggingUtils.SanitizeForLogging(ativo));
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erro no monitoramento do ativo {Ativo} após {MaxRetries} tentativas", LoggingUtils.SanitizeForLogging(ativo), maxRetries);
+                return;
+            }
         }
     }
 

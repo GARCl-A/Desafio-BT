@@ -1,5 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 
+namespace Desafio_BT.Models;
+
 public class EmailSettings
 {
     [Required]
