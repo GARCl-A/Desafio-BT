@@ -23,27 +23,52 @@ public class AppRunner
     {
         _logger.LogInformation("Aplicação iniciada.");
 
+        var validationResult = ValidateArguments(args);
+        if (validationResult != 0) return validationResult;
+
+        var (ativo, precoVenda, precoCompra) = ParseArguments(args);
+        var destinationEmail = GetDestinationEmail();
+        if (destinationEmail == null) return 3;
+
+        await StartMonitoring(ativo, precoVenda, precoCompra, destinationEmail);
+        return 0;
+    }
+
+    private int ValidateArguments(string[] args)
+    {
         if (args.Length != 3)
         {
             _logger.LogWarning("Uso: <app> ATIVO PRECO_VENDA  PRECO_COMPRA");
             return 1;
         }
+        return 0;
+    }
 
+    private (string ativo, decimal precoVenda, decimal precoCompra) ParseArguments(string[] args)
+    {
         var ativo = SanitizeInput(args[0]);
         if (!decimal.TryParse(args[1], NumberStyles.Number, CultureInfo.InvariantCulture, out var precoVenda) ||
             !decimal.TryParse(args[2], NumberStyles.Number, CultureInfo.InvariantCulture, out var precoCompra))
         {
             _logger.LogError("Preços devem ser valores numéricos válidos");
-            return 2;
+            throw new ArgumentException("Preços inválidos");
         }
+        return (ativo, precoVenda, precoCompra);
+    }
 
+    private string? GetDestinationEmail()
+    {
         var destinationEmail = _config.GetValue<string>("DestinationEmail");
         if (string.IsNullOrEmpty(destinationEmail))
         {
             _logger.LogError("Email de destino não configurado");
-            return 3;
+            return null;
         }
+        return destinationEmail;
+    }
 
+    private async Task StartMonitoring(string ativo, decimal precoVenda, decimal precoCompra, string destinationEmail)
+    {
         _logger.LogInformation("Iniciando monitoramento do ativo {Ativo}. Pressione Ctrl+C para parar.", LoggingUtils.SanitizeForLogging(ativo));
         
         using var cts = new CancellationTokenSource();
@@ -59,47 +84,70 @@ public class AppRunner
         {
             _logger.LogInformation("Monitoramento interrompido pelo usuário");
         }
-        return 0;
     }
 
     private async Task MonitorAsset(string ativo, decimal precoVenda, decimal precoCompra, string destinationEmail, CancellationToken cancellationToken)
     {
         if (cancellationToken.IsCancellationRequested) return;
         
+        var precoAtual = await GetPriceWithRetry(ativo);
+        if (precoAtual.HasValue)
+        {
+            await ProcessPriceAlert(ativo, precoAtual.Value, precoVenda, precoCompra, destinationEmail);
+        }
+    }
+
+    private async Task<decimal?> GetPriceWithRetry(string ativo)
+    {
         const int maxRetries = 3;
         for (int attempt = 1; attempt <= maxRetries; attempt++)
         {
             try
             {
-                var precoAtual = await _twelveDataService.GetCurrentPriceAsync(ativo);
-            
-                if (precoAtual <= precoCompra || precoAtual >= precoVenda)
-                {
-                    var acao = precoAtual <= precoCompra ? "COMPRAR" : "VENDER";
-                    await _emailService.SendEmailAsync(
-                        destinationEmail,
-                        $"Alerta {acao} - {LoggingUtils.SanitizeForLogging(ativo)}",
-                        $"Ação: {acao}\nPreço atual: {precoAtual:C}\nPreço de venda: {precoVenda:C}\nPreço de compra: {precoCompra:C}\nHorário: {DateTime.Now:HH:mm:ss}"
-                    );
-                    _logger.LogInformation("Email enviado - {Ativo}: {Preco} - {Acao}", LoggingUtils.SanitizeForLogging(ativo), precoAtual, acao);
-                }
-                else
-                {
-                    _logger.LogInformation("Preço monitorado - {Ativo}: {Preco} (sem alerta)", LoggingUtils.SanitizeForLogging(ativo), precoAtual);
-                }
-                return;
+                return await _twelveDataService.GetCurrentPriceAsync(ativo);
             }
             catch (Exception ex) when (attempt < maxRetries)
             {
                 _logger.LogWarning(ex, "Tentativa {Attempt}/{MaxRetries} falhou para {Ativo}. Tentando novamente...", attempt, maxRetries, LoggingUtils.SanitizeForLogging(ativo));
-                await Task.Delay(TimeSpan.FromSeconds(2 * attempt), cancellationToken);
+                await Task.Delay(TimeSpan.FromSeconds(2 * attempt));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Erro no monitoramento do ativo {Ativo} após {MaxRetries} tentativas", LoggingUtils.SanitizeForLogging(ativo), maxRetries);
-                return;
+                return null;
             }
         }
+        return null;
+    }
+
+    private async Task ProcessPriceAlert(string ativo, decimal precoAtual, decimal precoVenda, decimal precoCompra, string destinationEmail)
+    {
+        var acao = GetAlertAction(precoAtual, precoVenda, precoCompra);
+        if (acao != null)
+        {
+            await SendPriceAlert(ativo, precoAtual, precoVenda, precoCompra, destinationEmail, acao);
+        }
+        else
+        {
+            _logger.LogInformation("Preço monitorado - {Ativo}: {Preco} (sem alerta)", LoggingUtils.SanitizeForLogging(ativo), precoAtual);
+        }
+    }
+
+    private static string? GetAlertAction(decimal precoAtual, decimal precoVenda, decimal precoCompra)
+    {
+        if (precoAtual <= precoCompra) return "COMPRAR";
+        if (precoAtual >= precoVenda) return "VENDER";
+        return null;
+    }
+
+    private async Task SendPriceAlert(string ativo, decimal precoAtual, decimal precoVenda, decimal precoCompra, string destinationEmail, string acao)
+    {
+        await _emailService.SendEmailAsync(
+            destinationEmail,
+            $"Alerta {acao} - {LoggingUtils.SanitizeForLogging(ativo)}",
+            $"Ação: {acao}\nPreço atual: {precoAtual:C}\nPreço de venda: {precoVenda:C}\nPreço de compra: {precoCompra:C}\nHorário: {DateTime.Now:HH:mm:ss}"
+        );
+        _logger.LogInformation("Email enviado - {Ativo}: {Preco} - {Acao}", LoggingUtils.SanitizeForLogging(ativo), precoAtual, acao);
     }
 
     private static string SanitizeInput(string input)
