@@ -31,7 +31,7 @@ public class SmtpClientWrapperTests
     {
         using var wrapper = new SmtpClientWrapper();
         
-        await Assert.ThrowsAsync<Exception>(() => 
+        await Assert.ThrowsAnyAsync<Exception>(() => 
             wrapper.ConnectAsync("invalid", 587, SecureSocketOptions.StartTls));
     }
 
@@ -40,7 +40,7 @@ public class SmtpClientWrapperTests
     {
         using var wrapper = new SmtpClientWrapper();
         
-        await Assert.ThrowsAsync<Exception>(() => 
+        await Assert.ThrowsAnyAsync<Exception>(() => 
             wrapper.AuthenticateAsync("user", "pass"));
     }
 
@@ -50,7 +50,7 @@ public class SmtpClientWrapperTests
         using var wrapper = new SmtpClientWrapper();
         var message = new MimeMessage();
         
-        await Assert.ThrowsAsync<Exception>(() => 
+        await Assert.ThrowsAnyAsync<Exception>(() => 
             wrapper.SendAsync(message));
     }
 
