@@ -5,6 +5,8 @@ using Microsoft.Extensions.Logging;
 using Desafio_BT.Services;
 using Desafio_BT.Models;
 
+namespace Desafio_BT;
+
 public class Program
 {
     public static async Task<int> Main(string[] args)

@@ -8,6 +8,9 @@ namespace Desafio_BT.Tests.Unit;
 
 public class AppRunnerTests
 {
+    private static readonly string[] SingleArgument = { "PETR4" };
+    private static readonly string[] ValidArguments = { "PETR4", "25.50", "20.00" };
+
     [Fact]
     public async Task RunAsync_InvalidArgumentCount_ReturnsError()
     {
@@ -19,7 +22,7 @@ public class AppRunnerTests
         var appRunner = new AppRunner(mockLogger.Object, mockEmailService.Object, 
             config, mockTwelveDataService.Object);
         
-        var result = await appRunner.RunAsync(new[] { "PETR4" });
+        var result = await appRunner.RunAsync(SingleArgument);
         
         Assert.Equal(1, result);
     }
@@ -36,7 +39,7 @@ public class AppRunnerTests
         var appRunner = new AppRunner(mockLogger.Object, mockEmailService.Object, 
             config, mockTwelveDataService.Object);
         
-        var result = await appRunner.RunAsync(new[] { "PETR4", "25.50", "20.00" });
+        var result = await appRunner.RunAsync(ValidArguments);
         
         Assert.Equal(3, result);
     }

@@ -4,6 +4,8 @@ using System.Globalization;
 using Desafio_BT.Services;
 using Desafio_BT.Utils;
 
+namespace Desafio_BT;
+
 public class AppRunner
 {
     private readonly ILogger<AppRunner> _logger;
