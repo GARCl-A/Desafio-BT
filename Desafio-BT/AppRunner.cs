@@ -149,11 +149,24 @@ public class AppRunner
 
     private async Task SendPriceAlert(string ativo, decimal precoAtual, decimal precoVenda, decimal precoCompra, string destinationEmail, string acao)
     {
-        await _emailService.SendEmailAsync(
-            destinationEmail,
-            $"Alerta {acao} - {LoggingUtils.SanitizeForLogging(ativo)}",
-            $"Ação: {acao}\nPreço atual: {precoAtual:C}\nPreço de venda: {precoVenda:C}\nPreço de compra: {precoCompra:C}\nHorário: {DateTime.Now:HH:mm:ss}"
-        );
+        var emoji = acao == "COMPRAR" ? "🟢" : "🔴";
+        var subject = $"{emoji} ALERTA {acao} - {LoggingUtils.SanitizeForLogging(ativo)}";
+        var body = $@"📊 OPORTUNIDADE DETECTADA!
+
+{emoji} AÇÃO RECOMENDADA: {acao}
+💰 Ativo: {LoggingUtils.SanitizeForLogging(ativo)}
+💵 Preço Atual: {precoAtual:C}
+
+📈 SEUS LIMITES:
+• Venda: {precoVenda:C}
+• Compra: {precoCompra:C}
+
+⏰ Detectado em: {DateTime.Now:dd/MM/yyyy HH:mm:ss}
+
+---
+Monitor de Ações - Sistema Automatizado";
+
+        await _emailService.SendEmailAsync(destinationEmail, subject, body);
         _logger.LogInformation("Email enviado - {Ativo}: {Preco} - {Acao}", LoggingUtils.SanitizeForLogging(ativo), precoAtual, acao);
     }
 
