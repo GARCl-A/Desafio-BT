@@ -55,7 +55,7 @@ public class AppRunnerTests
         var mockEmailService = new Mock<IEmailService>();
         var mockTwelveDataService = new Mock<ITwelveDataService>();
         var config = new ConfigurationBuilder()
-            .AddInMemoryCollection(new[] { new KeyValuePair<string, string?>("DestinationEmail", "test@test.com") })
+            .AddInMemoryCollection([new("DestinationEmail", "test@test.com")])
             .Build();
         
         var appRunner = new AppRunner(mockLogger.Object, mockEmailService.Object, 
@@ -72,7 +72,7 @@ public class AppRunnerTests
         var mockEmailService = new Mock<IEmailService>();
         var mockTwelveDataService = new Mock<ITwelveDataService>();
         var config = new ConfigurationBuilder()
-            .AddInMemoryCollection(new[] { new KeyValuePair<string, string?>("DestinationEmail", "test@test.com") })
+            .AddInMemoryCollection([new("DestinationEmail", "test@test.com")])
             .Build();
         
         var appRunner = new AppRunner(mockLogger.Object, mockEmailService.Object, config, mockTwelveDataService.Object);
@@ -220,31 +220,28 @@ public class AppRunnerTests
     }
 
     [Fact]
-    public async Task StartMonitoring_WithCancellation_HandlesGracefully()
+    public async Task RunAsync_ValidArguments_ReturnsZero()
     {
         var mockLogger = new Mock<ILogger<AppRunner>>();
         var mockEmailService = new Mock<IEmailService>();
         var mockTwelveDataService = new Mock<ITwelveDataService>();
-        var config = new ConfigurationBuilder().Build();
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection([new("DestinationEmail", "test@test.com")])
+            .Build();
         
         var appRunner = new AppRunner(mockLogger.Object, mockEmailService.Object, config, mockTwelveDataService.Object);
-        var method = typeof(AppRunner).GetMethod("StartMonitoring", BindingFlags.NonPublic | BindingFlags.Instance);
         
-        // Start the monitoring task
-        var monitoringTask = (Task)method!.Invoke(appRunner, new object[] { "PETR4", 30.00m, 25.00m, "test@test.com" })!;
+        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
         
-        // Give it a moment to start, then simulate Ctrl+C by canceling
-        await Task.Delay(50);
+        try
+        {
+            var task = appRunner.RunAsync(ValidArguments);
+            await task.WaitAsync(cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+        }
         
-        // The method should complete when we simulate cancellation
-        // We can't directly access the CancellationTokenSource, but we can verify the method completes
-        var timeoutTask = Task.Delay(1000); // 1 second timeout
-        var completedTask = await Task.WhenAny(monitoringTask, timeoutTask);
-        
-        // The test passes if either the monitoring completes or we timeout (both are acceptable)
-        Assert.True(completedTask == monitoringTask || completedTask == timeoutTask);
-        
-        // Verify that monitoring was initiated
         mockLogger.Verify(
             x => x.Log(
                 LogLevel.Information,

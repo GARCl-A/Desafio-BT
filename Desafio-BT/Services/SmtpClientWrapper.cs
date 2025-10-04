@@ -7,6 +7,7 @@ namespace Desafio_BT.Services;
 public class SmtpClientWrapper : ISmtpClientWrapper
 {
     private readonly SmtpClient _client = new();
+    private bool _disposed;
 
     public bool IsConnected => _client.IsConnected;
 
@@ -22,5 +23,21 @@ public class SmtpClientWrapper : ISmtpClientWrapper
     public Task DisconnectAsync(bool quit) =>
         _client.DisconnectAsync(quit);
 
-    public void Dispose() => _client.Dispose();
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed)
+        {
+            if (disposing)
+            {
+                _client.Dispose();
+            }
+            _disposed = true;
+        }
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
 }
