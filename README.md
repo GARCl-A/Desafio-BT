@@ -27,20 +27,25 @@ Sistema de monitoramento de preços de ações com alertas por email.
 ## 📊 Qualidade do Código
 
 - **Cobertura de Testes**: >80%
-- **Análise SonarQube**: Quality Gate ✅
 - **CI/CD**: Build e deploy automatizados
 - **Padrões**: Clean Code, SOLID, DRY
 
 ## 🏃‍♂️ Como Executar
 
 ```bash
-# Configurar secrets
+# Configurar TODOS os secrets necessários
 dotnet user-secrets set "DestinationEmail" "seu@email.com"
-dotnet user-secrets set "ApiKey" "sua-api-key"
-dotnet user-secrets set "EmailSettings:Password" "sua-senha"
+dotnet user-secrets set "ApiKey" "sua-api-key-twelve-data"
+dotnet user-secrets set "EmailSettings:SmtpServer" "smtp.gmail.com"
+dotnet user-secrets set "EmailSettings:Port" "587"
+dotnet user-secrets set "EmailSettings:SenderEmail" "seu-email@gmail.com"
+dotnet user-secrets set "EmailSettings:Password" "sua-senha-app"
 
 # Executar
 dotnet run -- PETR4 30.00 25.00
+# PETR4: Código da ação a monitorar
+# 30.00: Preço limite para VENDA (quando atingir, envia alerta para vender)
+# 25.00: Preço limite para COMPRA (quando atingir, envia alerta para comprar)
 ```
 
 ## 🧪 Testes
@@ -59,12 +64,16 @@ dotnet test --collect:"XPlat Code Coverage"
 ## 📈 Arquitetura
 
 ```
-├── Services/           # Lógica de negócio
-├── Models/            # Modelos de dados
-├── Utils/             # Utilitários
-└── Tests/             # Testes unitários
-    ├── Unit/          # Testes unitários
-    └── Integration/   # Testes de integração
+Desafio-BT/                    # Projeto principal
+├── Services/                  # Lógica de negócio e integrações
+├── Models/                    # Modelos de dados (EmailSettings)
+├── Utils/                     # Utilitários (LoggingUtils)
+├── AppRunner.cs               # Orquestrador principal
+└── Program.cs                 # Configuração e inicialização
+
+Desafio-BT.Tests/              # Projeto de testes
+└── Unit/                      # Testes unitários
+    └── Services/              # Testes dos serviços
 ```
 
 ## 🎯 Destaques Técnicos
