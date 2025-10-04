@@ -1,7 +1,6 @@
 # 📈 Desafio BT - Monitor de Ações
 
 [![CI/CD Pipeline](https://github.com/GARCl-A/Teste-Inoa/actions/workflows/ci.yml/badge.svg)](https://github.com/GARCl-A/Teste-Inoa/actions/workflows/ci.yml)
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=GARCl-A_Desafio-BT&metric=alert_status)](https://sonarcloud.io/summary/overall?id=GARCl-A_Desafio-BT)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=GARCl-A_Desafio-BT&metric=coverage)](https://sonarcloud.io/summary/overall?id=GARCl-A_Desafio-BT)
 
 Sistema de monitoramento de preços de ações com alertas por email.
