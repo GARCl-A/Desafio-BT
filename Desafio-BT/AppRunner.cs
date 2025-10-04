@@ -15,14 +15,14 @@ public class AppRunner
         _config = config;
     }
 
-    public async Task RunAsync(string[] args)
+    public async Task<int> RunAsync(string[] args)
     {
         _logger.LogInformation("Aplicação iniciada.");
 
         if (args.Length != 3)
         {
             _logger.LogWarning("Uso: <app> ATIVO PRECO_VENDA PRECO_COMPRA");
-            return;
+            return 1;
         }
 
         var ativo = SanitizeInput(args[0]);
@@ -30,34 +30,43 @@ public class AppRunner
             !decimal.TryParse(args[2], NumberStyles.Number, CultureInfo.InvariantCulture, out var precoCompra))
         {
             _logger.LogError("Preços devem ser valores numéricos válidos");
-            return;
+            return 2;
         }
 
         var destinationEmail = _config.GetValue<string>("DestinationEmail");
+        if (string.IsNullOrEmpty(destinationEmail))
+        {
+            _logger.LogError("Email de destino não configurado");
+            return 3;
+        }
 
-        _logger.LogDebug("Processando ativo: {Ativo}, Venda: {PrecoVenda}, Compra: {PrecoCompra}", ativo, precoVenda, precoCompra);
+        _logger.LogDebug("Processando ativo: {Ativo}, Venda: {PrecoVenda}, Compra: {PrecoCompra}", LoggingUtils.SanitizeForLogging(ativo), precoVenda, precoCompra);
 
         try
         {
             _logger.LogInformation("Enviando e-mail...");
             await _emailService.SendEmailAsync(
-                destinationEmail!,
-                $"Alerta de Preço para o Ativo: {ativo}",
-                $"Uma operação foi sugerida para o ativo {ativo} com preço de venda {precoVenda:C} e preço de compra {precoCompra:C}."
+                destinationEmail,
+                 $"Alerta de Preço para o Ativo: {LoggingUtils.SanitizeForLogging(ativo)}",
+                $"Uma operação foi sugerida para o ativo {LoggingUtils.SanitizeForLogging(ativo)} com preço de venda {precoVenda:C} e preço de compra {precoCompra:C}."
             );
-            _logger.LogInformation("E-mail enviado com sucesso para {Email}", destinationEmail);
+            _logger.LogInformation("E-mail enviado com sucesso para {Email}", LoggingUtils.SanitizeForLogging(destinationEmail));
+            return 0;
         }
         catch (ArgumentException ex)
         {
-            _logger.LogError(ex, "Erro de configuração: {Message}", ex.Message);
+            _logger.LogError(ex, "Erro de configuração: {Message}", LoggingUtils.SanitizeForLogging(ex.Message));
+            return 4;
         }
         catch (InvalidOperationException ex)
         {
-            _logger.LogError(ex, "Erro de operação: {Message}", ex.Message);
+            _logger.LogError(ex, "Erro de operação: {Message}", LoggingUtils.SanitizeForLogging(ex.Message));
+            return 5;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Erro inesperado ao enviar e-mail");
+            return 6;
         }
     }
 
