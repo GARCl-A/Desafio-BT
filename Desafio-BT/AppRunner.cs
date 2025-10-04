@@ -87,9 +87,9 @@ public class AppRunner
         {
             await Task.Delay(Timeout.Infinite, cts.Token);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException ex)
         {
-            _logger.LogInformation("Monitoramento interrompido pelo usuário");
+            _logger.LogInformation(ex, "Monitoramento interrompido pelo usuário");
         }
     }
 
