@@ -7,12 +7,14 @@ public class AppRunner
     private readonly ILogger<AppRunner> _logger;
     private readonly EmailService _emailService;
     private readonly IConfiguration _config;
+    private readonly TwelveDataService _twelveDataService;
 
-    public AppRunner(ILogger<AppRunner> logger, EmailService emailService, IConfiguration config)
+    public AppRunner(ILogger<AppRunner> logger, EmailService emailService, IConfiguration config, TwelveDataService twelveDataService)
     {
         _logger = logger;
         _emailService = emailService;
         _config = config;
+        _twelveDataService = twelveDataService;
     }
 
     public async Task<int> RunAsync(string[] args)
@@ -44,11 +46,14 @@ public class AppRunner
 
         try
         {
+            _logger.LogInformation("Consultando preço atual do ativo...");
+            var precoAtual = await _twelveDataService.GetCurrentPriceAsync(ativo);
+            
             _logger.LogInformation("Enviando e-mail...");
             await _emailService.SendEmailAsync(
                 destinationEmail,
                  $"Alerta de Preço para o Ativo: {LoggingUtils.SanitizeForLogging(ativo)}",
-                $"Uma operação foi sugerida para o ativo {LoggingUtils.SanitizeForLogging(ativo)} com preço de venda {precoVenda:C} e preço de compra {precoCompra:C}."
+                $"Preço atual: {precoAtual:C}\nUma operação foi sugerida para o ativo {LoggingUtils.SanitizeForLogging(ativo)} com preço de venda {precoVenda:C} e preço de compra {precoCompra:C}."
             );
             _logger.LogInformation("E-mail enviado com sucesso para {Email}", LoggingUtils.SanitizeForLogging(destinationEmail));
             return 0;

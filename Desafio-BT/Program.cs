@@ -27,7 +27,9 @@ public class Program
         builder.ConfigureServices((hostContext, services) =>
         {
             ConfigureEmailSettings(services, hostContext.Configuration);
+            services.AddSingleton<HttpClient>();
             services.AddSingleton<EmailService>();
+            services.AddSingleton<TwelveDataService>();
             services.AddSingleton<AppRunner>();
         });
 
