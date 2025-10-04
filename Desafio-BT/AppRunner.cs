@@ -23,7 +23,7 @@ public class AppRunner
 
         if (args.Length != 3)
         {
-            _logger.LogWarning("Uso: <app> ATIVO PRECO_VENDA PRECO_COMPRA");
+            _logger.LogWarning("Uso: <app> ATIVO PRECO_VENDA  PRECO_COMPRA");
             return 1;
         }
 
@@ -56,12 +56,20 @@ public class AppRunner
         {
             var precoAtual = await _twelveDataService.GetCurrentPriceAsync(ativo);
             
-            await _emailService.SendEmailAsync(
-                destinationEmail,
-                $"Monitoramento - {LoggingUtils.SanitizeForLogging(ativo)}",
-                $"Preço atual: {precoAtual:C}\nPreço de venda: {precoVenda:C}\nPreço de compra: {precoCompra:C}\nHorário: {DateTime.Now:HH:mm:ss}"
-            );
-            _logger.LogInformation("Email enviado - {Ativo}: {Preco}", LoggingUtils.SanitizeForLogging(ativo), precoAtual);
+            if (precoAtual <= precoCompra || precoAtual >= precoVenda)
+            {
+                var acao = precoAtual <= precoCompra ? "COMPRAR" : "VENDER";
+                await _emailService.SendEmailAsync(
+                    destinationEmail,
+                    $"Alerta {acao} - {LoggingUtils.SanitizeForLogging(ativo)}",
+                    $"Ação: {acao}\nPreço atual: {precoAtual:C}\nPreço de venda: {precoVenda:C}\nPreço de compra: {precoCompra:C}\nHorário: {DateTime.Now:HH:mm:ss}"
+                );
+                _logger.LogInformation("Email enviado - {Ativo}: {Preco} - {Acao}", LoggingUtils.SanitizeForLogging(ativo), precoAtual, acao);
+            }
+            else
+            {
+                _logger.LogInformation("Preço monitorado - {Ativo}: {Preco} (sem alerta)", LoggingUtils.SanitizeForLogging(ativo), precoAtual);
+            }
         }
         catch (Exception ex)
         {
