@@ -26,8 +26,8 @@ jobs:
     - name: Begin SonarQube Analysis
       run: |
         dotnet sonarscanner begin \
-          /k:"desafio-bt" \
-          /o:"your-org" \
+          /k:"GARCl-A_Desafio-BT" \
+          /o:"garcl-a" \
           /d:sonar.host.url="https://sonarcloud.io" \
           /d:sonar.token="${{ secrets.SONAR_TOKEN }}" \
           /d:sonar.cs.opencover.reportsPaths="coverage/**/coverage.opencover.xml"
