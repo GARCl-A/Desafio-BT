@@ -2,8 +2,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Threading.Tasks;
 using Desafio_BT.Services;
 using Desafio_BT.Models;
 
@@ -29,7 +27,7 @@ public class Program
         builder.ConfigureServices((hostContext, services) =>
         {
             ConfigureEmailSettings(services, hostContext.Configuration);
-            services.AddSingleton<HttpClient>(provider => new HttpClient { Timeout = TimeSpan.FromSeconds(15) });
+            services.AddSingleton(_ => new HttpClient { Timeout = TimeSpan.FromSeconds(15) });
             services.AddSingleton<IEmailService, EmailService>();
             services.AddSingleton<ITwelveDataService, TwelveDataService>();
             services.AddSingleton<AppRunner>();
