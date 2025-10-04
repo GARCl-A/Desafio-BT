@@ -28,3 +28,9 @@ packages/
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
+
+# Coverage e Reports
+coverage/
+*.coverage
+*.coveragexml
+TestResults/
