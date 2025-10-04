@@ -7,6 +7,9 @@ using Desafio_BT.Services;
 using Desafio_BT.Models;
 using System.Reflection;
 using MimeKit;
+using MailKit;
+using MailKit.Security;
+using System.Net.Sockets;
 
 namespace Desafio_BT.Tests.Unit.Services;
 
@@ -226,6 +229,82 @@ public class EmailServiceTests
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task SendEmailAsync_Success_CallsSmtpClientCorrectly()
+    {
+        var mockSmtpClient = new Mock<ISmtpClientWrapper>();
+        mockSmtpClient.Setup(x => x.IsConnected).Returns(true);
+        var service = new EmailService(_mockOptions.Object, _mockLogger.Object, () => mockSmtpClient.Object);
+        
+        await service.SendEmailAsync("test@test.com", "Subject", "Body");
+        
+        mockSmtpClient.Verify(x => x.ConnectAsync(_emailSettings.SmtpServer, _emailSettings.Port, SecureSocketOptions.StartTls), Times.Once);
+        mockSmtpClient.Verify(x => x.AuthenticateAsync(_emailSettings.SmtpUsername, _emailSettings.Password), Times.Once);
+        mockSmtpClient.Verify(x => x.SendAsync(It.IsAny<MimeMessage>()), Times.Once);
+        mockSmtpClient.Verify(x => x.DisconnectAsync(true), Times.Once);
+    }
+
+    [Fact]
+    public async Task SendEmailAsync_AuthenticationException_ThrowsInvalidOperationException()
+    {
+        var mockSmtpClient = new Mock<ISmtpClientWrapper>();
+        mockSmtpClient.Setup(x => x.AuthenticateAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .ThrowsAsync(new AuthenticationException());
+        
+        var service = new EmailService(_mockOptions.Object, _mockLogger.Object, () => mockSmtpClient.Object);
+        
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => 
+            service.SendEmailAsync("test@test.com", "subject", "body"));
+        
+        Assert.Equal("Credenciais SMTP inválidas", ex.Message);
+    }
+
+    [Fact]
+    public async Task SendEmailAsync_SocketException_ThrowsInvalidOperationException()
+    {
+        var mockSmtpClient = new Mock<ISmtpClientWrapper>();
+        mockSmtpClient.Setup(x => x.ConnectAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<SecureSocketOptions>()))
+            .ThrowsAsync(new SocketException());
+        
+        var service = new EmailService(_mockOptions.Object, _mockLogger.Object, () => mockSmtpClient.Object);
+        
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => 
+            service.SendEmailAsync("test@test.com", "subject", "body"));
+        
+        Assert.Equal("Erro de conectividade de rede", ex.Message);
+    }
+
+    [Fact]
+    public async Task SendEmailAsync_ProtocolException_ThrowsInvalidOperationException()
+    {
+        var mockSmtpClient = new Mock<ISmtpClientWrapper>();
+        mockSmtpClient.Setup(x => x.SendAsync(It.IsAny<MimeMessage>()))
+            .ThrowsAsync(new Exception("Protocol error"));
+        
+        var service = new EmailService(_mockOptions.Object, _mockLogger.Object, () => mockSmtpClient.Object);
+        
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => 
+            service.SendEmailAsync("test@test.com", "subject", "body"));
+        
+        Assert.Contains("test@test.com", ex.Message);
+    }
+
+    [Fact]
+    public async Task SendEmailAsync_GenericException_ThrowsInvalidOperationExceptionWithContext()
+    {
+        var mockSmtpClient = new Mock<ISmtpClientWrapper>();
+        var toEmail = "test@test.com";
+        mockSmtpClient.Setup(x => x.SendAsync(It.IsAny<MimeMessage>()))
+            .ThrowsAsync(new Exception("Unexpected error"));
+        
+        var service = new EmailService(_mockOptions.Object, _mockLogger.Object, () => mockSmtpClient.Object);
+        
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => 
+            service.SendEmailAsync(toEmail, "subject", "body"));
+        
+        Assert.Contains(toEmail, ex.Message);
     }
 
     private static MethodInfo GetPrivateMethod(string methodName)

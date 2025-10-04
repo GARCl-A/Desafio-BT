@@ -14,11 +14,13 @@ public class EmailService : IEmailService
 {
     private readonly EmailSettings _settings;
     private readonly ILogger<EmailService> _logger;
+    private readonly Func<ISmtpClientWrapper> _smtpClientFactory;
 
-    public EmailService(IOptions<EmailSettings> settings, ILogger<EmailService> logger)
+    public EmailService(IOptions<EmailSettings> settings, ILogger<EmailService> logger, Func<ISmtpClientWrapper>? smtpClientFactory = null)
     {
         _settings = settings.Value ?? throw new ArgumentNullException(nameof(settings));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _smtpClientFactory = smtpClientFactory ?? (() => new SmtpClientWrapper());
         
         _logger.LogInformation("EmailService inicializado - Servidor: {SmtpServer}, Porta: {Port}, Remetente: {SenderEmail}", 
             LoggingUtils.SanitizeForLogging(_settings.SmtpServer), _settings.Port, LoggingUtils.SanitizeForLogging(_settings.SenderEmail));
@@ -66,7 +68,7 @@ public class EmailService : IEmailService
 
     private async Task SendEmailMessage(MimeMessage message, string toEmail)
     {
-        using var client = new SmtpClient();
+        using var client = _smtpClientFactory();
         try
         {
             await client.ConnectAsync(_settings.SmtpServer, _settings.Port, SecureSocketOptions.StartTls);
@@ -92,7 +94,7 @@ public class EmailService : IEmailService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Erro inesperado ao enviar email para {Email}", LoggingUtils.SanitizeForLogging(toEmail));
-            throw;
+            throw new InvalidOperationException($"Falha no envio de email para {LoggingUtils.SanitizeForLogging(toEmail)}", ex);
         }
         finally
         {
