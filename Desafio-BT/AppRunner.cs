@@ -42,36 +42,30 @@ public class AppRunner
             return 3;
         }
 
-        _logger.LogDebug("Processando ativo: {Ativo}, Venda: {PrecoVenda}, Compra: {PrecoCompra}", LoggingUtils.SanitizeForLogging(ativo), precoVenda, precoCompra);
+        _logger.LogInformation("Iniciando monitoramento do ativo {Ativo}. Pressione Ctrl+C para parar.", LoggingUtils.SanitizeForLogging(ativo));
+        
+        using var timer = new Timer(async _ => await MonitorAsset(ativo, precoVenda, precoCompra, destinationEmail), null, TimeSpan.Zero, TimeSpan.FromSeconds(15));
+        
+        await Task.Run(() => Console.ReadKey());
+        return 0;
+    }
 
+    private async Task MonitorAsset(string ativo, decimal precoVenda, decimal precoCompra, string destinationEmail)
+    {
         try
         {
-            _logger.LogInformation("Consultando preço atual do ativo...");
             var precoAtual = await _twelveDataService.GetCurrentPriceAsync(ativo);
             
-            _logger.LogInformation("Enviando e-mail...");
             await _emailService.SendEmailAsync(
                 destinationEmail,
-                 $"Alerta de Preço para o Ativo: {LoggingUtils.SanitizeForLogging(ativo)}",
-                $"Preço atual: {precoAtual:C}\nUma operação foi sugerida para o ativo {LoggingUtils.SanitizeForLogging(ativo)} com preço de venda {precoVenda:C} e preço de compra {precoCompra:C}."
+                $"Monitoramento - {LoggingUtils.SanitizeForLogging(ativo)}",
+                $"Preço atual: {precoAtual:C}\nPreço de venda: {precoVenda:C}\nPreço de compra: {precoCompra:C}\nHorário: {DateTime.Now:HH:mm:ss}"
             );
-            _logger.LogInformation("E-mail enviado com sucesso para {Email}", LoggingUtils.SanitizeForLogging(destinationEmail));
-            return 0;
-        }
-        catch (ArgumentException ex)
-        {
-            _logger.LogError(ex, "Erro de configuração: {Message}", LoggingUtils.SanitizeForLogging(ex.Message));
-            return 4;
-        }
-        catch (InvalidOperationException ex)
-        {
-            _logger.LogError(ex, "Erro de operação: {Message}", LoggingUtils.SanitizeForLogging(ex.Message));
-            return 5;
+            _logger.LogInformation("Email enviado - {Ativo}: {Preco}", LoggingUtils.SanitizeForLogging(ativo), precoAtual);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Erro inesperado ao enviar e-mail");
-            return 6;
+            _logger.LogError(ex, "Erro no monitoramento do ativo {Ativo}", LoggingUtils.SanitizeForLogging(ativo));
         }
     }
 
