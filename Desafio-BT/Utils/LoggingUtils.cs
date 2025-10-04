@@ -1,4 +1,5 @@
 using System.Text;
+using System.Linq;
 
 namespace Desafio_BT.Utils;
 
@@ -12,12 +13,6 @@ public static class LoggingUtils
         if (input.Length > 100)
             input = input[..100];
             
-        var result = new StringBuilder(input.Length);
-        foreach (char c in input.Trim())
-        {
-            if (c >= 32 && c != 127)
-                result.Append(c);
-        }
-        return result.ToString();
+        return string.Concat(input.Trim().Where(c => c >= 32 && c != 127));
     }
 }

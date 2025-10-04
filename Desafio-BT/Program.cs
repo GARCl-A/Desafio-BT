@@ -7,7 +7,7 @@ using Desafio_BT.Models;
 
 namespace Desafio_BT;
 
-public class Program
+public static class Program
 {
     public static async Task<int> Main(string[] args)
     {
@@ -56,7 +56,7 @@ public class Program
     {
         try
         {
-            var logger = host.Services.GetRequiredService<ILogger<Program>>();
+            var logger = host.Services.GetRequiredService<ILogger<AppRunner>>();
             logger.LogCritical(ex, "Erro crítico na inicialização: {Message}", ex.Message);
         }
         catch
