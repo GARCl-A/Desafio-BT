@@ -27,33 +27,45 @@ public class EmailService : IEmailService
 
     public async Task SendEmailAsync(string toEmail, string subject, string body)
     {
+        ValidateEmailParameters(toEmail, subject, body);
+        _logger.LogDebug("Preparando envio de email para {Email}", LoggingUtils.SanitizeForLogging(toEmail));
+        
+        var message = CreateEmailMessage(toEmail, subject, body);
+        await SendEmailMessage(message, toEmail);
+    }
+
+    private static void ValidateEmailParameters(string toEmail, string subject, string body)
+    {
         if (string.IsNullOrWhiteSpace(toEmail))
             throw new ArgumentException("Email de destino não pode ser vazio", nameof(toEmail));
         if (string.IsNullOrWhiteSpace(subject))
             throw new ArgumentException("Assunto não pode ser vazio", nameof(subject));
         if (string.IsNullOrWhiteSpace(body))
             throw new ArgumentException("Corpo do email não pode ser vazio", nameof(body));
-        
         if (!toEmail.Contains('@') || toEmail.Length > 254)
             throw new ArgumentException("Formato de email inválido", nameof(toEmail));
+    }
 
-        _logger.LogDebug("Preparando envio de email para {Email}", LoggingUtils.SanitizeForLogging(toEmail));
-
-        MimeMessage message;
+    private MimeMessage CreateEmailMessage(string toEmail, string subject, string body)
+    {
         try
         {
-            message = new MimeMessage();
+            var message = new MimeMessage();
             message.From.Add(new MailboxAddress("Alerta de Ativos", _settings.SenderEmail));
             message.To.Add(new MailboxAddress("", toEmail));
             message.Subject = subject;
             message.Body = new TextPart("plain") { Text = body };
+            return message;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Erro ao criar mensagem de email");
             throw new InvalidOperationException("Falha na criação da mensagem", ex);
         }
+    }
 
+    private async Task SendEmailMessage(MimeMessage message, string toEmail)
+    {
         using var client = new SmtpClient();
         try
         {
