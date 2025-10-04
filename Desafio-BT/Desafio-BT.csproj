@@ -9,11 +9,7 @@
     <UserSecretsId>8e41c612-8d26-4b4d-b660-e7cdbf16ac4e</UserSecretsId>
   </PropertyGroup>
 
-  <ItemGroup>
-    <None Include="appsettings.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
+
 
   <ItemGroup>
     <PackageReference Include="MailKit" Version="4.14.0" />

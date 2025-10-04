@@ -44,6 +44,7 @@ public class AppRunnerTests
     [Theory]
     [InlineData("PETR4", "invalid", "20.00")]
     [InlineData("PETR4", "25.50", "invalid")]
+    [InlineData("PETR4", "20.00", "25.00")]
     public async Task RunAsync_InvalidPrices_ThrowsException(string ativo, string precoVenda, string precoCompra)
     {
         var mockLogger = new Mock<ILogger<AppRunner>>();

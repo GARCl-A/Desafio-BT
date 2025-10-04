@@ -53,6 +53,11 @@ public class AppRunner
             _logger.LogError("Preços devem ser valores numéricos válidos");
             throw new ArgumentException("Preços inválidos");
         }
+        if (precoCompra >= precoVenda)
+        {
+            _logger.LogError("Preço de compra deve ser menor que preço de venda");
+            throw new ArgumentException("Preço de compra deve ser menor que preço de venda");
+        }
         return (ativo, precoVenda, precoCompra);
     }
 
