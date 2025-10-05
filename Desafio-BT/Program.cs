@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -11,8 +11,16 @@ public static class Program
 {
     public static async Task<int> Main(string[] args)
     {
-        var host = CreateHost(args);
-        return await RunApplication(host, args);
+        try
+        {
+            var host = CreateHost(args);
+            return await RunApplication(host, args);
+        }
+        catch (Exception ex)
+        {
+            LogCriticalError(null, ex);
+            return 98;
+        }
     }
 
     private static IHost CreateHost(string[] args)
@@ -40,24 +48,23 @@ public static class Program
 
     private static async Task<int> RunApplication(IHost host, string[] args)
     {
-        try
-        {
-            var appRunner = host.Services.GetRequiredService<AppRunner>();
-            return await appRunner.RunAsync(args);
-        }
-        catch (Exception ex)
-        {
-            LogCriticalError(host, ex);
-            return 98;
-        }
+        var appRunner = host.Services.GetRequiredService<AppRunner>();
+        return await appRunner.RunAsync(args);
     }
 
-    private static void LogCriticalError(IHost host, Exception ex)
+    private static void LogCriticalError(IHost? host, Exception ex)
     {
         try
         {
-            var logger = host.Services.GetRequiredService<ILogger<AppRunner>>();
-            logger.LogCritical(ex, "Erro crítico na inicialização: {Message}", ex.Message);
+            if (host != null)
+            {
+                var logger = host.Services.GetRequiredService<ILogger<AppRunner>>();
+                logger.LogCritical(ex, "Erro crítico na inicialização: {Message}", ex.Message);
+            }
+            else
+            {
+                Console.WriteLine($"Erro crítico na inicialização: {ex.Message}");
+            }
         }
         catch
         {

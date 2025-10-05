@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Logging;
 using Desafio_BT.Models;
 using Desafio_BT.Services;
 
@@ -23,6 +24,50 @@ public class ProgramTests
         var result = await Program.Main(InvalidArgs);
         
         Assert.Equal(1, result);
+    }
+
+    [Fact]
+    public async Task Main_WithMissingDestinationEmail_ReturnsCriticalErrorCode()
+    {
+        using var env = new EnvironmentScope()
+            .WithApiKey("test-key")
+            .WithValidEmailSettings();
+
+        var result = await Program.Main(["PETR4", "30.00", "25.00"]);
+        
+        Assert.Equal(98, result);
+    }
+
+    [Fact]
+    public async Task Main_WithInvalidEmailSettings_ReturnsCriticalErrorCode()
+    {
+        using var env = new EnvironmentScope()
+            .WithDestinationEmail("test@test.com")
+            .WithApiKey("test-key")
+            .Set("EmailSettings__SmtpServer", "")
+            .Set("EmailSettings__Port", "587")
+            .Set("EmailSettings__SenderEmail", "test@test.com")
+            .Set("EmailSettings__SmtpUsername", "test")
+            .Set("EmailSettings__Password", "password");
+
+        var result = await Program.Main(["PETR4", "30.00", "25.00"]);
+        
+        Assert.Equal(98, result);
+    }
+
+    [Fact]
+    public async Task Main_WithHostCreationException_ReturnsCriticalErrorCode()
+    {
+        // Teste que força uma exceção durante a criação do host
+        // usando uma configuração que vai falhar na validação
+        using var env = new EnvironmentScope()
+            .WithDestinationEmail("test@test.com")
+            .WithApiKey("test-key")
+            .Set("EmailSettings__Port", "invalid-port");
+
+        var result = await Program.Main(["PETR4", "30.00", "25.00"]);
+        
+        Assert.Equal(98, result);
     }
 
     [Fact]
@@ -164,6 +209,8 @@ public class ConfigurationFluentBuilder
     {
         if (email != null)
             _config["DestinationEmail"] = email;
+        else
+            _config.Remove("DestinationEmail");
         return this;
     }
 
@@ -219,7 +266,7 @@ public class EnvironmentScope : IDisposable
                .Set("EmailSettings__Password", "password");
     }
 
-    private EnvironmentScope Set(string key, string? value)
+    public EnvironmentScope Set(string key, string? value)
     {
         if (string.IsNullOrEmpty(key) || key.Contains('\0') || key.Contains('='))
             throw new ArgumentException("Invalid environment variable key", nameof(key));
