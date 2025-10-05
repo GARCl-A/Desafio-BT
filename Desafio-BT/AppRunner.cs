@@ -23,7 +23,7 @@ public class AppRunner
 
     public async Task<int> RunAsync(string[] args)
     {
-        _logger.LogInformation("Aplicação iniciada.");
+
 
         var validationResult = ValidateArguments(args);
         if (validationResult != 0) return validationResult;
@@ -117,7 +117,8 @@ public class AppRunner
 
     private async Task StartMonitoring(string ativo, decimal precoVenda, decimal precoCompra, string destinationEmail)
     {
-        _logger.LogInformation("Iniciando monitoramento do ativo {Ativo}. Pressione Ctrl+C para parar.", LoggingUtils.SanitizeForLogging(ativo));
+        Console.WriteLine($"\n📊 Monitorando {ativo} - Venda: {precoVenda:C} | Compra: {precoCompra:C}");
+        Console.WriteLine("🔄 Verificando preços a cada 15 segundos... (Ctrl+C para parar)\n");
         
         using var cts = new CancellationTokenSource();
         Console.CancelKeyPress += (_, e) => { e.Cancel = true; cts.Cancel(); };
@@ -133,9 +134,9 @@ public class AppRunner
                 await MonitorAsset(ativo, precoVenda, precoCompra, destinationEmail, cts.Token);
             }
         }
-        catch (OperationCanceledException ex)
+        catch (OperationCanceledException)
         {
-            _logger.LogInformation(ex, "Monitoramento interrompido pelo usuário");
+            Console.WriteLine("\n👋 Monitoramento encerrado. Até logo!");
         }
     }
 
@@ -182,7 +183,7 @@ public class AppRunner
         }
         else
         {
-            _logger.LogInformation("Preço monitorado - {Ativo}: {Preco} (sem alerta)", LoggingUtils.SanitizeForLogging(ativo), precoAtual);
+            Console.WriteLine($"{DateTime.Now:HH:mm:ss} - {ativo}: {precoAtual:C}");
         }
     }
 
@@ -213,7 +214,7 @@ public class AppRunner
 Monitor de Ações - Sistema Automatizado";
 
         await _emailService.SendEmailAsync(destinationEmail, subject, body);
-        _logger.LogInformation("Email enviado - {Ativo}: {Preco} - {Acao}", LoggingUtils.SanitizeForLogging(ativo), precoAtual, LoggingUtils.SanitizeForLogging(acao));
+        Console.WriteLine($"\n📧 ALERTA ENVIADO! {acao} {ativo} por {precoAtual:C}\n");
     }
 
     private static string SanitizeInput(string input)

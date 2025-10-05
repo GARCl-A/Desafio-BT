@@ -62,14 +62,12 @@ public class TwelveDataService : ITwelveDataService
     {
         var url = $"https://api.twelvedata.com/price?symbol={symbol}&apikey={_apiKey}";
         var response = await _httpClient.GetStringAsync(url);
-        _logger.LogInformation("Resposta da API para {Symbol}: {Response}", LoggingUtils.SanitizeForLogging(symbol), LoggingUtils.SanitizeForLogging(response));
         return response;
     }
 
     private PriceResponse DeserializePriceResponse(string response)
     {
         var priceData = JsonSerializer.Deserialize<PriceResponse>(response);
-        _logger.LogInformation("Price deserializado: '{Price}'", LoggingUtils.SanitizeForLogging(priceData?.Price ?? "null"));
         return priceData ?? new PriceResponse();
     }
 
@@ -77,7 +75,6 @@ public class TwelveDataService : ITwelveDataService
     {
         if (decimal.TryParse(priceData.Price, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var price))
         {
-            _logger.LogInformation("Preço obtido para {Symbol}: {Price}", LoggingUtils.SanitizeForLogging(symbol), price);
             return price;
         }
         

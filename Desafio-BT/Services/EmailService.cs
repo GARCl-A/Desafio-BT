@@ -26,9 +26,8 @@ public class EmailService : IEmailService
             
             ValidateEmailSettings(_settings);
             
-            _logger.LogInformation("EmailService inicializado - Servidor: {SmtpServer}, Porta: {Port}, Remetente: {SenderEmail}", 
+            _logger.LogDebug("EmailService inicializado - Servidor: {SmtpServer}, Porta: {Port}, Remetente: {SenderEmail}", 
                 LoggingUtils.SanitizeForLogging(_settings.SmtpServer), _settings.Port, LoggingUtils.SanitizeForLogging(_settings.SenderEmail));
-            _logger.LogDebug("Configurações de email validadas com sucesso");
         }
         catch (Exception ex) when (!(ex is ArgumentNullException || ex is ArgumentException))
         {
@@ -98,7 +97,7 @@ public class EmailService : IEmailService
             await client.ConnectAsync(_settings.SmtpServer, _settings.Port, SecureSocketOptions.StartTls);
             await client.AuthenticateAsync(_settings.SmtpUsername, _settings.Password);
             await client.SendAsync(message);
-            _logger.LogInformation("Email enviado com sucesso para {Email}", LoggingUtils.SanitizeForLogging(toEmail));
+            _logger.LogDebug("Email enviado com sucesso para {Email}", LoggingUtils.SanitizeForLogging(toEmail));
         }
         catch (AuthenticationException ex)
         {

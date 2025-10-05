@@ -223,7 +223,7 @@ public class EmailServiceTests
         
         _mockLogger.Verify(
             x => x.Log(
-                LogLevel.Information,
+                LogLevel.Debug,
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("EmailService inicializado")),
                 It.IsAny<Exception>(),
