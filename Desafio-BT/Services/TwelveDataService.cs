@@ -65,13 +65,13 @@ public class TwelveDataService : ITwelveDataService
         return response;
     }
 
-    private PriceResponse DeserializePriceResponse(string response)
+    private static PriceResponse DeserializePriceResponse(string response)
     {
         var priceData = JsonSerializer.Deserialize<PriceResponse>(response);
         return priceData ?? new PriceResponse();
     }
 
-    private decimal ParsePrice(PriceResponse priceData, string symbol)
+    private static decimal ParsePrice(PriceResponse priceData, string symbol)
     {
         if (decimal.TryParse(priceData.Price, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var price))
         {
