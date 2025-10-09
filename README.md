@@ -33,16 +33,26 @@ Sistema de monitoramento de preços de ações com alertas por email.
 ## 🏃‍♂️ Como Executar
 
 ```bash
+# Obter uma chave de api do twelve data
+https://twelvedata.com/
+
+# Configurar o SMTP
+O SMTP utilizado foi o Mailtrap [https://mailtrap.io/] que fornecia as configurações de e-mail necessárias
+OBS: normalmente SenderEmail e Username serão os mesmos. Porém, no mailtrap eram coisas distintas
+
 # Configurar TODOS os secrets necessários
 dotnet user-secrets set "DestinationEmail" "seu@email.com"
 dotnet user-secrets set "ApiKey" "sua-api-key-twelve-data"
 dotnet user-secrets set "EmailSettings:SmtpServer" "smtp.gmail.com"
 dotnet user-secrets set "EmailSettings:Port" "587"
 dotnet user-secrets set "EmailSettings:SenderEmail" "seu-email@gmail.com"
+dotnet user-secrets set "EmailSettings:SmtpUsername" "seu-username-app"
 dotnet user-secrets set "EmailSettings:Password" "sua-senha-app"
 
 # Executar
+cd .\Desafio-BT\
 dotnet run -- PETR4 30.00 25.00
+
 # PETR4: Código da ação a monitorar
 # 30.00: Preço limite para VENDA (quando atingir, envia alerta para vender)
 # 25.00: Preço limite para COMPRA (quando atingir, envia alerta para comprar)
